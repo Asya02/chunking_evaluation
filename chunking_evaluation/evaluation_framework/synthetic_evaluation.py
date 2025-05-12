@@ -4,19 +4,45 @@ import json
 import random
 
 from chunking_evaluation.utils import rigorous_document_search
+from langchain_gigachat import GigaChatEmbeddings
 from .base_evaluation import BaseEvaluation
 
 import pandas as pd
 import numpy as np
-from openai import OpenAI
 from importlib import resources
+from dotenv import find_dotenv, load_dotenv
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_gigachat.chat_models.gigachat import GigaChat
+from langchain_core.output_parsers.json import JsonOutputParser
+
+load_dotenv(find_dotenv())
+
+class CustomGigaChat(GigaChat):
+    def invoke(self, *args, **kwargs):
+        for attempt in range(20):
+            try:
+                result = super().invoke(*args, **kwargs)
+                finish_reason = result.response_metadata['finish_reason']
+                if finish_reason != 'length':
+                    return result
+                else:
+                    print("!!! Length exceeded, retrying...")
+                    continue
+            except Exception as e:
+                if attempt >= 19:
+                    raise e
+                else:
+                    print(f"!!! Error: {e}, retrying...")
+                    continue
+        return result
+    
 
 class SyntheticEvaluation(BaseEvaluation):
     def __init__(self, corpora_paths: List[str], queries_csv_path: str, chroma_db_path:str = None, openai_api_key=None):
         super().__init__(questions_csv_path=queries_csv_path, chroma_db_path=chroma_db_path)
         self.corpora_paths = corpora_paths
         self.questions_csv_path = queries_csv_path
-        self.client = OpenAI(api_key=openai_api_key)
+        # self.client = OpenAI(api_key=openai_api_key)
 
         self.synth_questions_df = None
 
@@ -79,17 +105,20 @@ class SyntheticEvaluation(BaseEvaluation):
 
         tagged_text, tag_indexes = self._tag_text(document)
 
-        completion = self.client.chat.completions.create(
-            model="gpt-4-turbo",
-            response_format={ "type": "json_object" },
-            max_tokens=600,
-            messages=[
-                {"role": "system", "content": self.question_maker_approx_system_prompt},
-                {"role": "user", "content": self.question_maker_approx_user_prompt.replace("{document}", tagged_text).replace("{prev_questions_str}", prev_questions_str)}
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", self.question_maker_approx_system_prompt),
+                ("user", self.question_maker_approx_user_prompt)
             ]
         )
-        
-        json_response = json.loads(completion.choices[0].message.content)
+        llm = CustomGigaChat(
+            model="GigaChat-2-Max",
+            verify_ssl_certs=False,
+            profanity_check=False,
+            top_p=0
+        )
+        chain = prompt | llm | JsonOutputParser()
+        json_response = chain.invoke({"document": tagged_text, "prev_questions_str": prev_questions_str})
         
         try:
             text_references = json_response['references']
@@ -139,17 +168,20 @@ class SyntheticEvaluation(BaseEvaluation):
         else:
             prev_questions_str = ""
 
-        completion = self.client.chat.completions.create(
-            model="gpt-4-turbo",
-            response_format={ "type": "json_object" },
-            max_tokens=600,
-            messages=[
-                {"role": "system", "content": self.question_maker_system_prompt},
-                {"role": "user", "content": self.question_maker_user_prompt.replace("{document}", document).replace("{prev_questions_str}", prev_questions_str)}
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", self.question_maker_system_prompt),
+                ("user", self.question_maker_user_prompt)
             ]
         )
-        
-        json_response = json.loads(completion.choices[0].message.content)
+        llm = CustomGigaChat(
+            model="GigaChat-2-Max",
+            verify_ssl_certs=False,
+            profanity_check=False,
+            top_p=0
+        )
+        chain = prompt | llm | JsonOutputParser()
+        json_response = chain.invoke({"document": document, "prev_questions_str": prev_questions_str})
         
         try:
             text_references = json_response['references']
@@ -224,15 +256,16 @@ class SyntheticEvaluation(BaseEvaluation):
             rounds += 1
 
     def _get_sim(self, target, references):
-        response = self.client.embeddings.create(
-            input=[target]+references,
-            model="text-embedding-3-large"
+        giga_embeds = GigaChatEmbeddings(
+            verify_ssl_certs=False,
+            model="EmbeddingsGigaR"
         )
-        nparray1 = np.array(response.data[0].embedding)
+        response = giga_embeds.embed_documents([target]+references)
+        nparray1 = np.array(response[0])
 
         full_sim = []
-        for i in range(1, len(response.data)):
-            nparray2 = np.array(response.data[i].embedding)
+        for i in range(1, len(response)):
+            nparray2 = np.array(response[i])
             cosine_similarity = np.dot(nparray1, nparray2) / (np.linalg.norm(nparray1) * np.linalg.norm(nparray2))
             full_sim.append(cosine_similarity)
     
@@ -295,12 +328,13 @@ class SyntheticEvaluation(BaseEvaluation):
 
         questions = corpus_questions_df['question'].tolist()
 
-        response = self.client.embeddings.create(
-            input=questions,
-            model="text-embedding-3-large"
+        giga_embeds = GigaChatEmbeddings(
+            verify_ssl_certs=False,
+            model="EmbeddingsGigaR"
         )
+        response = giga_embeds.embed_documents(questions)
 
-        embeddings_matrix = np.array([data.embedding for data in response.data])
+        embeddings_matrix = np.array(response)
 
         dot_product_matrix = np.dot(embeddings_matrix, embeddings_matrix.T)
 

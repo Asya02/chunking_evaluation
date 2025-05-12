@@ -23,7 +23,7 @@ Experiment C<end_chunk_4><start_chunk_5>: In the enzyme activity assay, it was f
 Experiment D: The light exposure trial demonstrated that UV light stimulate<end_chunk_7><start_chunk_8>d the reaction, making it complete in half the time compared to the absence of light. Conversely, pr<end_chunk_8><start_chunk_9>olonged light exposure led to unwanted side reactions that contaminated the final product.
 <end_chunk_9>"
 
-Response: {
+Response: {{
   'oath': "I will not use the word 'and' in the question unless it is part of a proper noun. I will also make sure the question is concise.",
   'question': 'What experiments were done in this paper?',
   'references': [{
@@ -43,7 +43,7 @@ Response: {
     'start_chunk': 7,
     'end_chunk': 8,
   }]
-}
+}}
 
 DO NOT USE THE WORD 'and' IN THE QUESTION UNLESS IT IS PART OF A PROPER NOUN. YOU MUST INCLUDE THE OATH ABOVE IN YOUR RESPONSE.
 YOU MUST ALSO NOT REPEAT A QUESTION THAT HAS ALREADY BEEN USED.

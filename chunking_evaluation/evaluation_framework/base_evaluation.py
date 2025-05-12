@@ -1,27 +1,31 @@
-from typing import Callable
-from chunking_evaluation.utils import rigorous_document_search, get_openai_embedding_function
-import chromadb.utils.embedding_functions as embedding_functions
-import os
-import pandas as pd
 import json
+import os
+from importlib import resources
+
 import chromadb
 import numpy as np
-from typing import List
-from importlib import resources
+import pandas as pd
+
+from chunking_evaluation.utils import (
+    get_gigachat_embedding_function,
+    rigorous_document_search,
+)
+
 
 def sum_of_ranges(ranges):
     return sum(end - start for start, end in ranges)
 
+
 def union_ranges(ranges):
     # Sort ranges based on the starting index
     sorted_ranges = sorted(ranges, key=lambda x: x[0])
-    
+
     # Initialize with the first range
     merged_ranges = [sorted_ranges[0]]
-    
+
     for current_start, current_end in sorted_ranges[1:]:
         last_start, last_end = merged_ranges[-1]
-        
+
         # Check if the current range overlaps or is contiguous with the last range in the merged list
         if current_start <= last_end:
             # Merge the two ranges
@@ -29,33 +33,35 @@ def union_ranges(ranges):
         else:
             # No overlap, add the current range as new
             merged_ranges.append((current_start, current_end))
-    
+
     return merged_ranges
+
 
 def intersect_two_ranges(range1, range2):
     # Unpack the ranges
     start1, end1 = range1
     start2, end2 = range2
-    
+
     # Calculate the maximum of the starting indices and the minimum of the ending indices
     intersect_start = max(start1, start2)
     intersect_end = min(end1, end2)
-    
+
     # Check if the intersection is valid (the start is less than or equal to the end)
     if intersect_start <= intersect_end:
         return (intersect_start, intersect_end)
     else:
         return None  # Return an None if there is no intersection
-    
+
+
 # Define the difference function
 def difference(ranges, target):
     """
     Takes a set of ranges and a target range, and returns the difference.
-    
+
     Args:
     - ranges (list of tuples): A list of tuples representing ranges. Each tuple is (a, b) where a <= b.
     - target (tuple): A tuple representing a target range (c, d) where c <= d.
-    
+
     Returns:
     - List of tuples representing ranges after removing the segments that overlap with the target range.
     """
@@ -80,12 +86,14 @@ def difference(ranges, target):
 
     return result
 
+
 def find_target_in_document(document, target):
     start_index = document.find(target)
     if start_index == -1:
         return None
     end_index = start_index + len(target)
     return start_index, end_index
+
 
 class BaseEvaluation:
     def __init__(self, questions_csv_path: str, chroma_db_path=None, corpora_id_paths=None):
@@ -113,7 +121,7 @@ class BaseEvaluation:
             self.questions_df['references'] = self.questions_df['references'].apply(json.loads)
         else:
             self.questions_df = pd.DataFrame(columns=['question', 'references', 'corpus_id'])
-        
+
         self.corpus_list = self.questions_df['corpus_id'].unique().tolist()
 
     def _get_chunks_and_metadata(self, splitter):
@@ -125,7 +133,7 @@ class BaseEvaluation:
             corpus_path = corpus_id
             if self.corpora_id_paths is not None:
                 corpus_path = self.corpora_id_paths[corpus_id]
-    
+
             # Check the operating system and use UTF-8 encoding on Windows
             # This prevents UnicodeDecodeError when reading files with non-ASCII characters
             import platform
@@ -136,13 +144,13 @@ class BaseEvaluation:
                 # Use default encoding on other systems
                 with open(corpus_path, 'r') as file:
                     corpus = file.read()
-    
+
             current_documents = splitter.split_text(corpus)
             current_metadatas = []
             for document in current_documents:
                 try:
                     _, start_index, end_index = rigorous_document_search(corpus, document)
-                except:
+                except Exception:
                     print(f"Error in finding {document} in {corpus_id}")
                     raise Exception(f"Error in finding {document} in {corpus_id}")
                 current_metadatas.append({"start_index": start_index, "end_index": end_index, "corpus_id": corpus_id})
@@ -176,7 +184,7 @@ class BaseEvaluation:
 
                 if chunk_corpus_id != corpus_id:
                     continue
-                
+
                 contains_highlight = False
 
                 for ref_obj in references:
@@ -184,7 +192,7 @@ class BaseEvaluation:
                     ref_start, ref_end = int(ref_obj['start_index']), int(ref_obj['end_index'])
                     # Calculate intersection between chunk and reference
                     intersection = intersect_two_ranges((chunk_start, chunk_end), (ref_start, ref_end))
-                    
+
                     if intersection is not None:
                         contains_highlight = True
 
@@ -193,22 +201,22 @@ class BaseEvaluation:
 
                         # Add intersection to numerator sets
                         numerator_sets = union_ranges([intersection] + numerator_sets)
-                        
+
                         # Add chunk to denominator sets
                         denominator_chunks_sets = union_ranges([(chunk_start, chunk_end)] + denominator_chunks_sets)
-            
+
                 if contains_highlight:
                     highlighted_chunk_count += 1
-                
+
             highlighted_chunks_count.append(highlighted_chunk_count)
 
             # Combine unused highlights and chunks for final denominator
             denominator_sets = union_ranges(denominator_chunks_sets + unused_highlights)
-            
+
             # Calculate ioc_score if there are numerator sets
             if numerator_sets:
                 ioc_score = sum_of_ranges(numerator_sets) / sum_of_ranges(denominator_sets)
-            
+
             ioc_scores.append(ioc_score)
 
             recall_score = 1 - (sum_of_ranges(unused_highlights) / sum_of_ranges([(x['start_index'], x['end_index']) for x in references]))
@@ -237,25 +245,24 @@ class BaseEvaluation:
 
                 if chunk_corpus_id != corpus_id:
                     continue
-                
+
                 # for reference, ref_start, ref_end in references:
                 for ref_obj in references:
                     reference = ref_obj['content']
                     ref_start, ref_end = int(ref_obj['start_index']), int(ref_obj['end_index'])
-                    
+
                     # Calculate intersection between chunk and reference
                     intersection = intersect_two_ranges((chunk_start, chunk_end), (ref_start, ref_end))
-                    
+
                     if intersection is not None:
                         # Remove intersection from unused highlights
                         unused_highlights = difference(unused_highlights, intersection)
 
                         # Add intersection to numerator sets
                         numerator_sets = union_ranges([intersection] + numerator_sets)
-                        
+
                         # Add chunk to denominator sets
                         denominator_chunks_sets = union_ranges([(chunk_start, chunk_end)] + denominator_chunks_sets)
-            
 
             if numerator_sets:
                 numerator_value = sum_of_ranges(numerator_sets)
@@ -294,7 +301,7 @@ class BaseEvaluation:
         if collection is None:
             try:
                 self.chroma_client.delete_collection(collection_name)
-            except ValueError as e:
+            except Exception:
                 pass
             collection = self.chroma_client.create_collection(collection_name, embedding_function=embedding_function, metadata={"hnsw:search_ef":50})
 
@@ -315,16 +322,15 @@ class BaseEvaluation:
             # print("Metadatas: ", batch_metas)
 
         return collection
-    
+
     def _convert_question_references_to_json(self):
         def safe_json_loads(row):
             try:
                 return json.loads(row)
-            except:
+            except Exception:
                 pass
 
         self.questions_df['references'] = self.questions_df['references'].apply(safe_json_loads)
-
 
     def run(self, chunker, embedding_function=None, retrieve:int = 5, db_to_save_chunks: str = None):
         """
@@ -337,7 +343,7 @@ class BaseEvaluation:
         """
         self._load_questions_df()
         if embedding_function is None:
-            embedding_function = get_openai_embedding_function()
+            embedding_function = get_gigachat_embedding_function()
 
         collection = None
         if db_to_save_chunks is not None:
@@ -350,7 +356,7 @@ class BaseEvaluation:
             try:
                 chunk_client = chromadb.PersistentClient(path=db_to_save_chunks)
                 collection = chunk_client.get_collection(collection_name, embedding_function=embedding_function)
-            except Exception as e:
+            except Exception:
                 # Get collection throws if the collection does not exist. We will create it below if it does not exist.
                 collection = self._chunker_to_collection(chunker, embedding_function, chroma_db_path=db_to_save_chunks, collection_name=collection_name)
 
@@ -373,15 +379,15 @@ class BaseEvaluation:
                 elif embedding_function.__class__.__name__ == "SentenceTransformerEmbeddingFunction":
                     try:
                         question_collection = questions_client.get_collection("auto_questions_sentence_transformer", embedding_function=embedding_function)
-                    except:
+                    except Exception:
                         print("Warning: Failed to use the frozen embeddings originally used in the paper. As a result, this package will now generate a new set of embeddings. The change should be minimal and only come from the noise floor of SentenceTransformer's embedding function. The error: ", e)
-        
+
         if not self.is_general or question_collection is None:
             # if self.is_general:
             #     print("FAILED TO LOAD GENERAL EVALUATION")
             try:
                 self.chroma_client.delete_collection("auto_questions")
-            except ValueError as e:
+            except Exception:
                 pass
             question_collection = self.chroma_client.create_collection("auto_questions", embedding_function=embedding_function, metadata={"hnsw:search_ef":50})
             question_collection.add(
@@ -389,7 +395,7 @@ class BaseEvaluation:
                 metadatas=[{"corpus_id": x} for x in self.questions_df['corpus_id'].tolist()],
                 ids=[str(i) for i in self.questions_df.index]
             )
-        
+
         question_db = question_collection.get(include=['embeddings'])
 
         # Convert ids to integers for sorting
@@ -416,7 +422,6 @@ class BaseEvaluation:
 
         iou_scores, recall_scores, precision_scores = self._scores_from_dataset_and_retrievals(retrievals['metadatas'], highlighted_chunks_count)
 
-
         corpora_scores = {
 
         }
@@ -433,7 +438,6 @@ class BaseEvaluation:
             corpora_scores[row['corpus_id']]['iou_scores'].append(iou_scores[index])
             corpora_scores[row['corpus_id']]['recall_scores'].append(recall_scores[index])
             corpora_scores[row['corpus_id']]['precision_scores'].append(precision_scores[index])
-
 
         brute_iou_mean = np.mean(brute_iou_scores)
         brute_iou_std = np.std(brute_iou_scores)

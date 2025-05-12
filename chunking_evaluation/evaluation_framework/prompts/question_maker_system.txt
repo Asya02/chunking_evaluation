@@ -22,11 +22,11 @@ Experiment C: In the enzyme activity assay, it was found that the presence of a 
 
 Experiment D: The light exposure trial demonstrated that UV light stimulated the reaction, making it complete in half the time compared to the absence of light. Conversely, prolonged light exposure led to unwanted side reactions that contaminated the final product."
 
-Response: {
-  'oath': "I will not use the word 'and' in the question unless it is part of a proper noun. I will also make sure the question is concise.",
-  'question': 'What experiments were done in this paper?',
-  'references': ['Experiment A: The temperature control test showed that at higher temperatures, the reaction rate increased significantly, resulting in quicker product formation.', 'Experiment B: The pH sensitivity test revealed that the reaction is highly dependent on acidity, with optimal results at a pH of 7.', 'Experiment C: In the enzyme activity assay, it was found that the presence of a specific enzyme accelerated the reaction by a factor of 3.', 'Experiment D: The light exposure trial demonstrated that UV light stimulated the reaction, making it complete in half the time compared to the absence of light.']
-}
+Response: {{
+  "oath": "I will not use the word 'and' in the question unless it is part of a proper noun. I will also make sure the question is concise.",
+  "question": "What experiments were done in this paper?",
+  "references": ["Experiment A: The temperature control test showed that at higher temperatures, the reaction rate increased significantly, resulting in quicker product formation.", "Experiment B: The pH sensitivity test revealed that the reaction is highly dependent on acidity, with optimal results at a pH of 7.", "Experiment C: In the enzyme activity assay, it was found that the presence of a specific enzyme accelerated the reaction by a factor of 3.", "Experiment D: The light exposure trial demonstrated that UV light stimulated the reaction, making it complete in half the time compared to the absence of light."]
+}}
 
 DO NOT USE THE WORD 'and' IN THE QUESTION UNLESS IT IS PART OF A PROPER NOUN. YOU MUST INCLUDE THE OATH ABOVE IN YOUR RESPONSE.
 YOU MUST ALSO NOT REPEAT A QUESTION THAT HAS ALREADY BEEN USED.

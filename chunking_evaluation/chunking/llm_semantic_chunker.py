@@ -2,7 +2,6 @@ from .base_chunker import BaseChunker
 from chunking_evaluation.utils import openai_token_count
 from chunking_evaluation.chunking import RecursiveTokenChunker
 import anthropic
-import os
 import backoff
 from tqdm import tqdm
 
@@ -112,7 +111,6 @@ class LLMSemanticChunker(BaseChunker):
 
         short_cut = len(split_indices) > 0
 
-        from tqdm import tqdm
 
         current_chunk = 0
 

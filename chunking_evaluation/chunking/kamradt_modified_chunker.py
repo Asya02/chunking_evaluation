@@ -4,7 +4,7 @@
 from typing import Optional
 from .base_chunker import BaseChunker
 from .recursive_token_chunker import RecursiveTokenChunker
-from chunking_evaluation.utils import openai_token_count, get_openai_embedding_function
+from chunking_evaluation.utils import openai_token_count, get_gigachat_embedding_function
 from chromadb.api.types import (
     Embeddable,
     EmbeddingFunction,
@@ -67,7 +67,7 @@ class KamradtModifiedChunker(BaseChunker):
         
         self.avg_chunk_size = avg_chunk_size
         if embedding_function is None:
-            embedding_function = get_openai_embedding_function()
+            embedding_function = get_gigachat_embedding_function()
         self.embedding_function = embedding_function
         self.length_function = length_function
 

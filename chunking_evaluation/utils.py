@@ -78,6 +78,12 @@ def get_openai_embedding_function():
     )
     return embedding_function
 
+def get_gigachat_embedding_function():
+    # if openai_api_key is None:
+    #     raise ValueError("You need to set an embedding function or set an OPENAI_API_KEY environment variable.")
+    embedding_function = embedding_functions.GigaChatEmbeddingFunction()
+    return embedding_function
+
 # Count the number of tokens in each page_content
 def openai_token_count(string: str) -> int:
     """Returns the number of tokens in a text string."""
