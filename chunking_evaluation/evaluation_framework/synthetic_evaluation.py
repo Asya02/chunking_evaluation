@@ -1,19 +1,20 @@
-from typing import List
-import os
 import json
+import os
 import random
+from importlib import resources
+from typing import List
+
+import numpy as np
+import pandas as pd
+from dotenv import find_dotenv, load_dotenv
+from langchain_core.output_parsers.json import JsonOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_gigachat import GigaChatEmbeddings
+from langchain_gigachat.chat_models.gigachat import GigaChat
 
 from chunking_evaluation.utils import rigorous_document_search
-from langchain_gigachat import GigaChatEmbeddings
-from .base_evaluation import BaseEvaluation
 
-import pandas as pd
-import numpy as np
-from importlib import resources
-from dotenv import find_dotenv, load_dotenv
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_gigachat.chat_models.gigachat import GigaChat
-from langchain_core.output_parsers.json import JsonOutputParser
+from .base_evaluation import BaseEvaluation
 
 load_dotenv(find_dotenv())
 
@@ -246,11 +247,11 @@ class SyntheticEvaluation(BaseEvaluation):
             synth_questions_df = pd.DataFrame(columns=['question', 'references', 'corpus_id'])
         return synth_questions_df
 
-    def generate_queries_and_excerpts(self, approximate_excerpts=False, num_rounds = -1, queries_per_corpus = 5):
+    def generate_queries_and_excerpts(self, approximate_excerpts=False, num_rounds = 5, queries_per_corpus = 5):
         self.synth_questions_df = self._get_synth_questions_df()
 
         rounds = 0
-        while num_rounds == -1 or rounds < num_rounds:
+        while rounds < num_rounds:
             for corpus_id in self.corpora_paths:
                 self._generate_corpus_questions(corpus_id, approx=approximate_excerpts, n=queries_per_corpus)
             rounds += 1
@@ -397,4 +398,4 @@ class SyntheticEvaluation(BaseEvaluation):
 
 
     def question_ref_filter(self):
-        self.synth_questions_df = self._get_synth_questions_df()
+        self.synth_questions_df = self._get_synth_questions_df()        self.synth_questions_df = self._get_synth_questions_df()
