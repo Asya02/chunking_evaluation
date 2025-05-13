@@ -254,7 +254,7 @@ class SyntheticEvaluation(BaseEvaluation):
                     self._save_questions_df()
 
                     break
-                except (ValueError, json.JSONDecodeError) as e:
+                except Exception as e:
                     print(f"Error occurred: {e}")
                     continue
             i += 1
