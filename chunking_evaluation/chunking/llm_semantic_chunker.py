@@ -1,9 +1,15 @@
-from .base_chunker import BaseChunker
-from chunking_evaluation.utils import openai_token_count
-from chunking_evaluation.chunking import RecursiveTokenChunker
 import anthropic
 import backoff
-from tqdm import tqdm
+from dotenv import find_dotenv, load_dotenv
+from langchain_core.output_parsers.string import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_gigachat.chat_models.gigachat import GigaChat
+
+from chunking_evaluation.chunking import RecursiveTokenChunker
+from chunking_evaluation.utils import openai_token_count
+
+from .base_chunker import BaseChunker
+
 
 class AnthropicClient:
     def __init__(self, model_name, api_key=None):
@@ -24,7 +30,41 @@ class AnthropicClient:
         except Exception as e:
             print(f"Error occurred: {e}, retrying...")
             raise e
+
+
+load_dotenv(find_dotenv())
+
+
+class GigaChatClient:
+    def __init__(self, model_name):
+        # self.client = anthropic.Anthropic(api_key=api_key)
+        self.model_name = model_name
         
+
+    @backoff.on_exception(backoff.expo, Exception, max_tries=3)
+    def create_message(self, system_prompt, messages, max_tokens=1000, temperature=1.0):
+        try:
+            model = GigaChat(
+                model=self.model_name,
+                verify_ssl_certs=False,
+                profanity_check=False,
+                top_p=0,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+            prompt = ChatPromptTemplate(
+                [
+                ("system", system_prompt)
+                ] + messages
+            )
+            chain = prompt | model | StrOutputParser()
+            response = chain.invoke(prompt)
+            return response
+        except Exception as e:
+            print(f"Error occurred: {e}, retrying...")
+            raise e
+
+
 class OpenAIClient:
     def __init__(self, model_name, api_key=None):
         from openai import OpenAI
@@ -62,7 +102,7 @@ class LLMSemanticChunker(BaseChunker):
         model_name (str, optional): The specific model to use. Defaults to "gpt-4o" for OpenAI and "claude-3-5-sonnet-20240620" for Anthropic. 
                                     Users can specify a different model by providing this argument.
     """
-    def __init__(self, organisation:str="openai", api_key:str=None, model_name:str=None):
+    def __init__(self, organisation: str = "gigachat", api_key: str = None, model_name: str = None):
         if organisation == "openai":
             if model_name is None:
                 model_name = "gpt-4o"
@@ -71,6 +111,10 @@ class LLMSemanticChunker(BaseChunker):
             if model_name is None:
                 model_name = "claude-3-5-sonnet-20240620"
             self.client = AnthropicClient(model_name, api_key=api_key)
+        elif organisation == "gigachat":
+            if model_name is None:
+                model_name = "GigaChat-2-Max"
+            self.client = GigaChatClient(model_name)
         else:
             raise ValueError("Invalid organisation. Please choose either 'openai' or 'anthropic'.")
 
@@ -83,7 +127,7 @@ class LLMSemanticChunker(BaseChunker):
     def get_prompt(self, chunked_input, current_chunk=0, invalid_response=None):
         messages = [
             {
-                "role": "system", 
+                "role": "system",
                 "content": (
                     "You are an assistant specialized in splitting text into thematically consistent sections. "
                     "The text has been divided into chunks, each marked with <|start_chunk_X|> and <|end_chunk_X|> tags, where X is the chunk number. "
@@ -93,7 +137,7 @@ class LLMSemanticChunker(BaseChunker):
                 )
             },
             {
-                "role": "user", 
+                "role": "user",
                 "content": (
                     "CHUNKED_TEXT: " + chunked_input + "\n\n"
                     "Respond only with the IDs of the chunks where you believe a split should occur. YOU MUST RESPOND WITH AT LEAST ONE SPLIT. THESE SPLITS MUST BE IN ASCENDING ORDER AND EQUAL OR LARGER THAN: " + str(current_chunk)+"." + (f"\n\The previous response of {invalid_response} was invalid. DO NOT REPEAT THIS ARRAY OF NUMBERS. Please try again." if invalid_response else "")
@@ -111,6 +155,7 @@ class LLMSemanticChunker(BaseChunker):
 
         short_cut = len(split_indices) > 0
 
+        from tqdm import tqdm
 
         current_chunk = 0
 
