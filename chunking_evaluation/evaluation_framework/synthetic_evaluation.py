@@ -6,57 +6,13 @@ from typing import List
 
 import numpy as np
 import pandas as pd
-from dotenv import find_dotenv, load_dotenv
 from langchain_core.output_parsers.json import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_gigachat import GigaChatEmbeddings
-from langchain_gigachat.chat_models.gigachat import GigaChat
 
-from chunking_evaluation.utils import rigorous_document_search
+from chunking_evaluation.utils import CustomGigaChat, CustomGigaChatEmbeddings, rigorous_document_search
 
 from .base_evaluation import BaseEvaluation
 
-load_dotenv(find_dotenv())
-
-class CustomGigaChat(GigaChat):
-    def invoke(self, *args, **kwargs):
-        for attempt in range(20):
-            try:
-                result = super().invoke(*args, **kwargs)
-                finish_reason = result.response_metadata['finish_reason']
-                if finish_reason != 'length':
-                    return result
-                else:
-                    print("!!! Length exceeded, retrying...")
-                    continue
-            except Exception as e:
-                if attempt >= 19:
-                    raise e
-                else:
-                    print(f"!!! Error: {e}, retrying...")
-                    continue
-        return result
-    
-class CustomGigaChatEmbeddings(GigaChatEmbeddings):
-    def embed_documents(self, *args, **kwargs) -> List[List[float]]:
-        """Embed documents using a GigaChat embeddings models.
-
-        Args:
-            texts: The list of texts to embed.
-
-        Returns:
-            List of embeddings, one for each text.
-        """
-        for attempt in range(20):
-            try:
-                result = super().embed_documents(*args, **kwargs)
-            except Exception as e:
-                if attempt >= 19:
-                    raise e
-                else:
-                    print(f"!!! Error: {e}, retrying...")
-                    continue
-        return result
 class SyntheticEvaluation(BaseEvaluation):
     def __init__(self, corpora_paths: List[str], queries_csv_path: str, chroma_db_path:str = None, openai_api_key=None):
         super().__init__(questions_csv_path=queries_csv_path, chroma_db_path=chroma_db_path)
