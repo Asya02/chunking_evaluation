@@ -37,7 +37,26 @@ class CustomGigaChat(GigaChat):
                     continue
         return result
     
+class CustomGigaChatEmbeddings(GigaChatEmbeddings):
+    def embed_documents(self, *args, **kwargs) -> List[List[float]]:
+        """Embed documents using a GigaChat embeddings models.
 
+        Args:
+            texts: The list of texts to embed.
+
+        Returns:
+            List of embeddings, one for each text.
+        """
+        for attempt in range(20):
+            try:
+                result = super().embed_documents(*args, **kwargs)
+            except Exception as e:
+                if attempt >= 19:
+                    raise e
+                else:
+                    print(f"!!! Error: {e}, retrying...")
+                    continue
+        return result
 class SyntheticEvaluation(BaseEvaluation):
     def __init__(self, corpora_paths: List[str], queries_csv_path: str, chroma_db_path:str = None, openai_api_key=None):
         super().__init__(questions_csv_path=queries_csv_path, chroma_db_path=chroma_db_path)
@@ -257,7 +276,7 @@ class SyntheticEvaluation(BaseEvaluation):
             rounds += 1
 
     def _get_sim(self, target, references):
-        giga_embeds = GigaChatEmbeddings(
+        giga_embeds = CustomGigaChatEmbeddings(
             verify_ssl_certs=False,
             model="EmbeddingsGigaR"
         )
@@ -329,7 +348,7 @@ class SyntheticEvaluation(BaseEvaluation):
 
         questions = corpus_questions_df['question'].tolist()
 
-        giga_embeds = GigaChatEmbeddings(
+        giga_embeds = CustomGigaChatEmbeddings(
             verify_ssl_certs=False,
             model="EmbeddingsGigaR"
         )
