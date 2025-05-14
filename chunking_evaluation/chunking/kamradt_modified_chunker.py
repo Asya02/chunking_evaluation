@@ -45,12 +45,12 @@ class KamradtModifiedChunker(BaseChunker):
         chunks = chunker.split_text(text)
     """
     def __init__(
-        self, 
-        avg_chunk_size:int=400, 
-        min_chunk_size:int=50, 
-        embedding_function: Optional[EmbeddingFunction[Embeddable]] = None, 
-        length_function=openai_token_count
-        ):
+            self,
+            avg_chunk_size: int = 400,
+            min_chunk_size: int = 50,
+            embedding_function: Optional[EmbeddingFunction[Embeddable]] = None,
+            length_function=openai_token_count,
+            ):
         """
         Initializes the KamradtModifiedChunker with the specified parameters.
 
@@ -60,14 +60,13 @@ class KamradtModifiedChunker(BaseChunker):
             embedding_function (EmbeddingFunction[Embeddable], optional): A function to obtain embeddings for text. Defaults to OpenAI's embedding function if not provided.
             length_function (function, optional): A function to calculate token length of a text. Defaults to `openai_token_count`.
         """
-        
-        
+
         self.splitter = RecursiveTokenChunker(
             chunk_size=min_chunk_size,
             chunk_overlap=0,
             length_function=length_function
             )
-        
+
         self.avg_chunk_size = avg_chunk_size
         if embedding_function is None:
             embedding_function = get_gigachat_embedding_function()
@@ -159,7 +158,7 @@ class KamradtModifiedChunker(BaseChunker):
                 
         sentences_strips = self.splitter.split_text(text)
 
-        sentences = [{'sentence': x, 'index' : i} for i, x in enumerate(sentences_strips)]
+        sentences = [{'sentence': x, 'index': i} for i, x in enumerate(sentences_strips)]
 
         sentences = self.combine_sentences(sentences, 3)
 

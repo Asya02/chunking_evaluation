@@ -8,6 +8,7 @@ from chromadb import Documents, EmbeddingFunction, Embeddings
 from chromadb.utils import embedding_functions
 from dotenv import find_dotenv, load_dotenv
 from fuzzywuzzy import fuzz, process
+from langchain_gigachat.chat_models.gigachat import GigaChat
 from langchain_gigachat.embeddings import GigaChatEmbeddings
 
 load_dotenv(find_dotenv())

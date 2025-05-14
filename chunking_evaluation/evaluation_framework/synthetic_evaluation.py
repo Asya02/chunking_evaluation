@@ -2,23 +2,27 @@ import json
 import os
 import random
 from importlib import resources
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
 from langchain_core.output_parsers.json import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
-from chunking_evaluation.utils import CustomGigaChat, CustomGigaChatEmbeddings, rigorous_document_search
+from chunking_evaluation.utils import (
+    CustomGigaChat,
+    CustomGigaChatEmbeddings,
+    rigorous_document_search,
+)
 
 from .base_evaluation import BaseEvaluation
 
+
 class SyntheticEvaluation(BaseEvaluation):
-    def __init__(self, corpora_paths: List[str], queries_csv_path: str, chroma_db_path:str = None, openai_api_key=None):
+    def __init__(self, corpora_paths: List[str], queries_csv_path: str, chroma_db_path: Optional[str] = None, openai_api_key=None):
         super().__init__(questions_csv_path=queries_csv_path, chroma_db_path=chroma_db_path)
         self.corpora_paths = corpora_paths
         self.questions_csv_path = queries_csv_path
-        # self.client = OpenAI(api_key=openai_api_key)
 
         self.synth_questions_df = None
 
@@ -65,7 +69,7 @@ class SyntheticEvaluation(BaseEvaluation):
     def _extract_question_and_approx_references(self, corpus, document_length=4000, prev_questions=[]):
         if len(corpus) > document_length:
             start_index = random.randint(0, len(corpus) - document_length)
-            document = corpus[start_index : start_index + document_length]
+            document = corpus[start_index:start_index + document_length]
         else:
             start_index = 0
             document = corpus
@@ -131,7 +135,7 @@ class SyntheticEvaluation(BaseEvaluation):
     def _extract_question_and_references(self, corpus, document_length=4000, prev_questions=[]):
         if len(corpus) > document_length:
             start_index = random.randint(0, len(corpus) - document_length)
-            document = corpus[start_index : start_index + document_length]
+            document = corpus[start_index:start_index + document_length]
         else:
             document = corpus
         
@@ -222,7 +226,7 @@ class SyntheticEvaluation(BaseEvaluation):
             synth_questions_df = pd.DataFrame(columns=['question', 'references', 'corpus_id'])
         return synth_questions_df
 
-    def generate_queries_and_excerpts(self, approximate_excerpts=False, num_rounds = 5, queries_per_corpus = 5):
+    def generate_queries_and_excerpts(self, approximate_excerpts=False, num_rounds=5, queries_per_corpus=5):
         self.synth_questions_df = self._get_synth_questions_df()
 
         rounds = 0
@@ -282,7 +286,6 @@ class SyntheticEvaluation(BaseEvaluation):
                 full_questions_df = full_questions_df.drop(columns=col)
 
         full_questions_df.to_csv(self.questions_csv_path, index=False)
-
 
     def filter_poor_excerpts(self, threshold=0.36, corpora_subset=[]):
         if os.path.exists(self.questions_csv_path):
@@ -344,7 +347,6 @@ class SyntheticEvaluation(BaseEvaluation):
 
         print(f"Corpus: {corpus_id} - Removed {count_before - count_after} .")
 
-
         corpus_questions_df['references'] = corpus_questions_df['references'].apply(json.dumps)
 
         full_questions_df = pd.read_csv(self.questions_csv_path)
@@ -358,8 +360,6 @@ class SyntheticEvaluation(BaseEvaluation):
 
         full_questions_df.to_csv(self.questions_csv_path, index=False)
 
-
-
     def filter_duplicates(self, threshold=0.78, corpora_subset=[]):
         if os.path.exists(self.questions_csv_path):
             synth_questions_df = pd.read_csv(self.questions_csv_path)
@@ -371,6 +371,5 @@ class SyntheticEvaluation(BaseEvaluation):
                 for corpus_id in corpus_list:
                     self._corpus_filter_duplicates(corpus_id, synth_questions_df, threshold)
 
-
     def question_ref_filter(self):
-        self.synth_questions_df = self._get_synth_questions_df()        self.synth_questions_df = self._get_synth_questions_df()
+        self.synth_questions_df = self._get_synth_questions_df()        

@@ -3,8 +3,8 @@
 # Original code can be found at: https://github.com/langchain-ai/langchain/blob/master/libs/text-splitters/langchain_text_splitters/base.py
 # License: MIT License
 
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
 from typing import (
     AbstractSet,
     Any,
@@ -18,14 +18,16 @@ from typing import (
     TypeVar,
     Union,
 )
-from .base_chunker import BaseChunker
-
 
 from attr import dataclass
+
+from .base_chunker import BaseChunker
 
 logger = logging.getLogger(__name__)
 
 TS = TypeVar("TS", bound="TextSplitter")
+
+
 class TextSplitter(BaseChunker, ABC):
     """Interface for splitting text into chunks."""
 
@@ -180,7 +182,8 @@ class TextSplitter(BaseChunker, ABC):
             kwargs = {**kwargs, **extra_kwargs}
 
         return cls(length_function=_tiktoken_encoder, **kwargs)
-    
+
+
 class FixedTokenChunker(TextSplitter):
     """Splitting text to tokens using model tokenizer."""
 
@@ -229,6 +232,7 @@ class FixedTokenChunker(TextSplitter):
         )
 
         return split_text_on_tokens(text=text, tokenizer=tokenizer)
+
 
 @dataclass(frozen=True)
 class Tokenizer:

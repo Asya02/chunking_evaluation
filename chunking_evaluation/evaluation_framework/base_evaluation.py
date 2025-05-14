@@ -284,13 +284,13 @@ class BaseEvaluation:
 
         return iou_scores, recall_scores, precision_scores
 
-    def _chunker_to_collection(self, chunker, embedding_function, chroma_db_path:str = None, collection_name:str = None):
+    def _chunker_to_collection(self, chunker, embedding_function, chroma_db_path: str = None, collection_name: str = None):
         collection = None
 
         if chroma_db_path is not None:
             try:
                 chunk_client = chromadb.PersistentClient(path=chroma_db_path)
-                collection = chunk_client.create_collection(collection_name, embedding_function=embedding_function, metadata={"hnsw:search_ef":50})
+                collection = chunk_client.create_collection(collection_name, embedding_function=embedding_function, metadata={"hnsw:search_ef": 50})
                 print("Created collection: ", collection_name)
             except Exception as e:
                 print("Failed to create collection: ", e)
@@ -303,7 +303,7 @@ class BaseEvaluation:
                 self.chroma_client.delete_collection(collection_name)
             except Exception:
                 pass
-            collection = self.chroma_client.create_collection(collection_name, embedding_function=embedding_function, metadata={"hnsw:search_ef":50})
+            collection = self.chroma_client.create_collection(collection_name, embedding_function=embedding_function, metadata={"hnsw:search_ef": 50})
 
         docs, metas = self._get_chunks_and_metadata(chunker)
 
@@ -332,7 +332,7 @@ class BaseEvaluation:
 
         self.questions_df['references'] = self.questions_df['references'].apply(safe_json_loads)
 
-    def run(self, chunker, embedding_function=None, retrieve:int = 5, db_to_save_chunks: str = None):
+    def run(self, chunker, embedding_function=None, retrieve: int = 5, db_to_save_chunks: str = None):
         """
         This function runs the evaluation over the provided chunker.
 
@@ -379,7 +379,7 @@ class BaseEvaluation:
                 elif embedding_function.__class__.__name__ == "SentenceTransformerEmbeddingFunction":
                     try:
                         question_collection = questions_client.get_collection("auto_questions_sentence_transformer", embedding_function=embedding_function)
-                    except Exception:
+                    except Exception as e:
                         print("Warning: Failed to use the frozen embeddings originally used in the paper. As a result, this package will now generate a new set of embeddings. The change should be minimal and only come from the noise floor of SentenceTransformer's embedding function. The error: ", e)
 
         if not self.is_general or question_collection is None:
@@ -389,7 +389,7 @@ class BaseEvaluation:
                 self.chroma_client.delete_collection("auto_questions")
             except Exception:
                 pass
-            question_collection = self.chroma_client.create_collection("auto_questions", embedding_function=embedding_function, metadata={"hnsw:search_ef":50})
+            question_collection = self.chroma_client.create_collection("auto_questions", embedding_function=embedding_function, metadata={"hnsw:search_ef": 50})
             question_collection.add(
                 documents=self.questions_df['question'].tolist(),
                 metadatas=[{"corpus_id": x} for x in self.questions_df['corpus_id'].tolist()],

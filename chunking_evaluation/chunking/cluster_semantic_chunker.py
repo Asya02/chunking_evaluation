@@ -1,10 +1,15 @@
-from .base_chunker import BaseChunker
 from typing import List
 
 import numpy as np
-from chunking_evaluation.chunking import RecursiveTokenChunker
 
-from chunking_evaluation.utils import get_gigachat_embedding_function, openai_token_count
+from chunking_evaluation.chunking import RecursiveTokenChunker
+from chunking_evaluation.utils import (
+    get_gigachat_embedding_function,
+    openai_token_count,
+)
+
+from .base_chunker import BaseChunker
+
 
 class ClusterSemanticChunker(BaseChunker):
     def __init__(self, embedding_function=None, max_chunk_size=400, min_chunk_size=50, length_function=openai_token_count):
@@ -12,9 +17,9 @@ class ClusterSemanticChunker(BaseChunker):
             chunk_size=min_chunk_size,
             chunk_overlap=0,
             length_function=openai_token_count,
-            separators = ["\n\n", "\n", ".", "?", "!", " ", ""]
+            separators=["\n\n", "\n", ".", "?", "!", " ", ""]
             )
-        
+
         if embedding_function is None:
             embedding_function = get_gigachat_embedding_function()
         self._chunk_size = max_chunk_size
