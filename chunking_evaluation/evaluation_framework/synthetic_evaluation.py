@@ -27,16 +27,16 @@ class SyntheticEvaluation(BaseEvaluation):
         self.synth_questions_df = None
 
         with resources.as_file(resources.files('chunking_evaluation.evaluation_framework') / 'prompts') as prompt_path:
-            with open(os.path.join(prompt_path, 'question_maker_system.txt'), 'r') as f:
+            with open(os.path.join(prompt_path, 'question_maker_system.txt'), 'r', encoding='utf-8') as f:
                 self.question_maker_system_prompt = f.read()
 
-            with open(os.path.join(prompt_path, 'question_maker_approx_system.txt'), 'r') as f:
+            with open(os.path.join(prompt_path, 'question_maker_approx_system.txt'), 'r', encoding='utf-8') as f:
                 self.question_maker_approx_system_prompt = f.read()
             
-            with open(os.path.join(prompt_path, 'question_maker_user.txt'), 'r') as f:
+            with open(os.path.join(prompt_path, 'question_maker_user.txt'), 'r', encoding='utf-8') as f:
                 self.question_maker_user_prompt = f.read()
 
-            with open(os.path.join(prompt_path, 'question_maker_approx_user.txt'), 'r') as f:
+            with open(os.path.join(prompt_path, 'question_maker_approx_user.txt', encoding='utf-8'), 'r') as f:
                 self.question_maker_approx_user_prompt = f.read()
 
     def _save_questions_df(self):
