@@ -186,7 +186,7 @@ class SyntheticEvaluation(BaseEvaluation):
         return question, references
 
     def _generate_corpus_questions(self, corpus_id, approx=False, n=5):
-        with open(corpus_id, 'r') as file:
+        with open(corpus_id, 'r', encoding="utf-8") as file:
             corpus = file.read()
 
         i = 0
