@@ -36,7 +36,7 @@ class SyntheticEvaluation(BaseEvaluation):
             with open(os.path.join(prompt_path, 'question_maker_user.txt'), 'r', encoding='utf-8') as f:
                 self.question_maker_user_prompt = f.read()
 
-            with open(os.path.join(prompt_path, 'question_maker_approx_user.txt', encoding='utf-8'), 'r') as f:
+            with open(os.path.join(prompt_path, 'question_maker_approx_user.txt'), 'r', encoding='utf-8') as f:
                 self.question_maker_approx_user_prompt = f.read()
 
     def _save_questions_df(self):
