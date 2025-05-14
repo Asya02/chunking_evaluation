@@ -55,7 +55,7 @@ class GigaChatClient:
                 [("system", system_prompt)] + messages
             )
             chain = prompt | model | StrOutputParser()
-            response = chain.invoke(prompt)
+            response = chain.invoke({})
             return response
         except Exception as e:
             print(f"Error occurred: {e}, retrying...")
